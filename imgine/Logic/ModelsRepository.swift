@@ -92,21 +92,34 @@ class ModelsRepository: ObservableObject {
         
         let newModelFolder = modelsFolder.appendingPathComponent(modelName, isDirectory: true)
         try fileManager.copyItem(at: sourceFolder, to: newModelFolder)
-        
-        try fileManager.validateFileAndReplaceIfNeeded(fileFolder: newModelFolder,
-                                                       fileName: "alphas_cumprod_prev.bin",
-                                                       resourceToReplaceWith: ("alphas_cumprod_prev", "bin"))
-        try fileManager.validateFileAndReplaceIfNeeded(fileFolder: newModelFolder,
-                                                       fileName: "alphas_cumprod.bin",
-                                                       resourceToReplaceWith: ("alphas_cumprod", "bin"))
+
+        let templateFiles = [
+            "alphas_cumprod_prev.bin",
+            "alphas_cumprod.bin",
+            "aux_output_conv.bias.bin",
+            "aux_output_conv.weight.bin",
+            "bpe_simple_vocab_16e6.txt",
+            "causal_mask.bin",
+            "temb_coefficients_fp32.bin"
+        ]
+
+        for templateFile in templateFiles {
+            var templateFile = templateFile as NSString
+            let ext = templateFile.pathExtension
+            let name = templateFile.deletingPathExtension
+            try fileManager.validateFileAndReplaceIfNeeded(fileFolder: newModelFolder,
+                                                           fileName: templateFile as String,
+                                                           resourceToReplaceWith: ("net_template/\(name)", ext))
+        }
         
         return Model(name: modelName, modelFolder: newModelFolder)
     }
     
     private func makeModel(fromCheckpoint ckptURL: URL, modelName: String) async throws -> Model {
-        let cacheFolder = try fileManager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        let cachesFolder = try fileManager.url(for: .cachesDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         let modelFolderName = UUID().uuidString
-        let tempModelFolder = cacheFolder.appendingPathComponent(modelFolderName, isDirectory: true)
+        let tempModelFolder = cachesFolder.appendingPathComponent(modelFolderName, isDirectory: true)
+        try fileManager.createDirectory(at: tempModelFolder, withIntermediateDirectories: true)
         
         try await MapleConvert().convert(ckptURL: ckptURL, destFolderURL: tempModelFolder)
         
@@ -123,10 +136,9 @@ class ModelsRepository: ObservableObject {
                 return model
             } else {
                 if fileManager.isCheckpoint(atPath: url.path) {
-                    throw Error.unsupportedURL
-//                    let model = try await makeModel(fromCheckpoint: url, modelName: modelName)
-//                    DispatchQueue.main.async { self.models.append(model) }
-//                    return model
+                    let model = try await makeModel(fromCheckpoint: url, modelName: modelName)
+                    DispatchQueue.main.async { self.models.append(model) }
+                    return model
                 } else {
                     let model = try await makeModel(fromArchiveURL: url, modelName: modelName)
                     DispatchQueue.main.async { self.models.append(model) }

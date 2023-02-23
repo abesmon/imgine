@@ -21,6 +21,7 @@ struct ModelWorkingArea: View {
     
     @StateObject private var sd = Diffusion()
     @StateObject private var config = DiffusionGenerationConfig()
+    @State private var lastSeed: Int?
     @State private var image : CGImage?
     @State private var imagePublisher = Diffusion.placeholderPublisher
     @State private var progress : Double = 0
@@ -63,6 +64,12 @@ struct ModelWorkingArea: View {
             }
             
             VStack {
+                if config.seed == nil, let lastSeed = lastSeed {
+                    Button("Last seed: \(lastSeed)") {
+                        config.seed = lastSeed
+                    }
+                }
+
                 ImageWithPorgressView(image: image, progress: progress)
                     .frame(minWidth: 64, maxWidth: 512, minHeight: 64, maxHeight: 512)
                     .aspectRatio(1, contentMode: .fit)
@@ -71,10 +78,12 @@ struct ModelWorkingArea: View {
                 
                 TextField("Prompt", text: $config.prompt)
                     .onSubmit {
+                        let theSeed = config.seed ?? Int.random(in: 0...Int.max)
+                        lastSeed = theSeed
                         self.imagePublisher = sd.generate(
                             prompt: config.prompt,
                             negativePrompt: config.negativePrompt,
-                            seed: config.seed ?? Int.random(in: 0...Int.max),
+                            seed: theSeed,
                             steps: config.steps,
                             guidanceScale: config.guidanceScale
                         )

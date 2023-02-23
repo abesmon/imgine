@@ -9,6 +9,6 @@ import Foundation
 
 extension FileManager {
     func isCheckpoint(atPath path: String) -> Bool {
-        return path.hasSuffix("ckpt")
+        return path.hasSuffix("ckpt") || path.hasPrefix("pkl")
     }
 }

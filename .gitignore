@@ -19,3 +19,8 @@ xcuserdata/
 !*.xcworkspace/contents.xcworkspacedata
 /*.gcno
 **/xcshareddata/WorkspaceSettings.xcsettings
+
+### ignoring python related stuff ###
+imgine/Resources/Python/Resources/app_packages
+imgine/Resources/Python/Resources/python-stdlib
+imgine/Resources/Frameworks/Python.xcframework
